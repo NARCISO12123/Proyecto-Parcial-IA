@@ -21,11 +21,8 @@ class Vida:
 # personaje 
 class Personaje:
 
-    def __init__(self, x, y, velocidad, estamina):
+    def __init__(self, x, y):
 
-        self.velocidad_Base = velocidad
-        self.velocidad = velocidad 
-        self.estamina = estamina
         self.forma = pygame.Rect(0, 0, 20, 20)
         self.forma.center = (x, y) 
         self.vida = Vida(5)
@@ -35,20 +32,3 @@ class Personaje:
 
         pygame.draw.rect(pantalla, (255,255,0), self.forma)
 
-    def mover(self, delta_x, delta_y):
-
-        self.forma.x = self.forma.x  + delta_x
-        
-        self.forma.y = self.forma.y +  delta_y
-    
-    def AumentarVelocidad(self):
-
-        self.velocidad = self.velocidad_Base  * 2
-
-        if self.velocidad >= self.velocidad_Base:
-
-            self.estamina -= 1
-
-    def detener(self):
-
-        self.velocidad = self.velocidad_Base
