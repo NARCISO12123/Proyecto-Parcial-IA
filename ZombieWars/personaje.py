@@ -31,4 +31,3 @@ class Personaje:
     def dibujar(self, pantalla):
 
         pygame.draw.rect(pantalla, (255,255,0), self.forma)
-

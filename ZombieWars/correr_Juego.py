@@ -5,11 +5,8 @@ from Enemigos import Enemigo
 from constantes import * 
 pygame.init()
 
-# Color de fondo de la ventana
-color_fondo = COLOR_FONDO
-
 # Crear ventana principal
-pantalla = pygame.display.set_mode((ANCHO_VENTANA, ALTO_VENTANA), pygame.RESIZABLE)
+pantalla = pygame.display.set_mode((ANCHO_VENTANA, ALTO_VENTANA))
 pantallaCompleta = False
 
 # Configuración de FPS
@@ -26,8 +23,12 @@ mover_izquierda = False
 tiempo_ultimo_paso = 0
 aumentarVelocidad = False
 
+# Tamaño fijo de celda
+cell_size = TAMANO_CELDA
+
 # Cargar sprite de asfalto
 asfalto_sprite = pygame.image.load("assets/images/suelo/AsfaltoBasico.png").convert_alpha()
+asfalto_scaled = pygame.transform.scale(asfalto_sprite, (cell_size, cell_size))
 
 # Cargar los sprites de obstáculos 
 obstaculo_sprites = [
@@ -35,26 +36,38 @@ obstaculo_sprites = [
     pygame.image.load("assets/images/obstaculos/hidrante.png").convert_alpha(),
     pygame.image.load("assets/images/obstaculos/Basurrero.png").convert_alpha()
 ]
+obstaculo_sprites_scaled = [
+    pygame.transform.scale(s, (cell_size, cell_size)) for s in obstaculo_sprites
+]
+
+# Calcular tamaño del mapa según la ventana (cubre toda la pantalla)
+def calcular_tamano_mapa(ancho, alto, cell):
+    cols = (ancho + cell - 1) // cell
+    filas = (alto + cell - 1) // cell
+    return filas, cols
 
 # Generar mapa con muros aleatorios
-def generar_mundo(n):
-    mapa = [[0 for _ in range(n)] for _ in range(n)]
-    for i in range(n):
-        for j in range(n):
+def generar_mundo(filas, cols):
+    mapa = [[0 for _ in range(cols)] for _ in range(filas)]
+    for i in range(filas):
+        for j in range(cols):
             if random.random() < 0.1:
                 mapa[i][j] = 1
+    # Asegurar posición inicial libre
+    mapa[1][1] = 0
     return mapa
 
-# Crear mapa
-tamano_mapa = TAMANO_MAPA
-mapa_grilla = generar_mundo(tamano_mapa)
+ancho_inicial, alto_inicial = pantalla.get_size()
+tamano_filas, tamano_cols = calcular_tamano_mapa(ancho_inicial, alto_inicial, cell_size)
 
-# Mapa de sprites para obstáculos (fijo por partida)
-obstaculo_mapa = [[None for _ in range(tamano_mapa)] for _ in range(tamano_mapa)]
-for i in range(tamano_mapa):
-    for j in range(tamano_mapa):
+mapa_grilla = generar_mundo(tamano_filas, tamano_cols)
+
+# Mapa de sprites para obstáculos
+obstaculo_mapa = [[None for _ in range(tamano_cols)] for _ in range(tamano_filas)]
+for i in range(tamano_filas):
+    for j in range(tamano_cols):
         if mapa_grilla[i][j] == 1:
-            obstaculo_mapa[i][j] = random.choice(obstaculo_sprites)
+            obstaculo_mapa[i][j] = random.choice(obstaculo_sprites_scaled)
 
 # Posición inicial del jugador
 jugador_fila = 1
@@ -63,15 +76,16 @@ jugador_col = 1
 # Crear objeto jugador
 Jugador = Personaje(0, 0)
 
-# Generar enemigos lejos del jugador
+# Generar enemigos y obstaculos lejos del jugador
 cantidad_enemigos = random.randint(MIN_ENEMIGOS, MAX_ENEMIGOS)
 enemigos = []
 
 distancia_minima = 10
 for _ in range(cantidad_enemigos):
-    while True:
-        fila = random.randint(0, tamano_mapa - 1)
-        col = random.randint(0, tamano_mapa - 1)
+    intentos = 0
+    while intentos < 1000:
+        fila = random.randint(0, tamano_filas - 1)
+        col = random.randint(0, tamano_cols - 1)
 
         if (mapa_grilla[fila][col] == 0 and
             abs(fila - jugador_fila) >= distancia_minima and
@@ -84,52 +98,38 @@ for _ in range(cantidad_enemigos):
                 "col": col
             })
             break
+        intentos += 1
 
 # Bucle principal
 correr = True
 while correr:
     relog.tick(fps)
-    pantalla.fill(color_fondo)
 
-    # Ajustar tamaño dinámico de la grilla
     ancho, alto = pantalla.get_size()
-    cell_size = min(ancho // tamano_mapa, alto // tamano_mapa)
-    offset_x = (ancho - (cell_size * tamano_mapa)) // 2
-    offset_y = (alto - (cell_size * tamano_mapa)) // 2
+
+    # Dibujar mapa 
+    for i in range(tamano_filas):
+        for j in range(tamano_cols):
+            x = j * cell_size
+            y = i * cell_size
+            if mapa_grilla[i][j] == 0:
+                pantalla.blit(asfalto_scaled, (x, y))
+            else:
+                pantalla.blit(obstaculo_mapa[i][j], (x, y))
 
     # Convertir posición del jugador a coordenadas de pantalla
-    jugador_x = offset_x + jugador_col * cell_size + cell_size // 2
-    jugador_y = offset_y + jugador_fila * cell_size + cell_size // 2
+    jugador_x = jugador_col * cell_size + cell_size // 2
+    jugador_y = jugador_fila * cell_size + cell_size // 2
     Jugador.forma.center = (jugador_x, jugador_y)
 
     # Actualizar posición visual de los enemigos
     for enemigo in enemigos:
-        enemigo_x = offset_x + enemigo["col"] * cell_size + cell_size // 2
-        enemigo_y = offset_y + enemigo["fila"] * cell_size + cell_size // 2
+        enemigo_x = enemigo["col"] * cell_size + cell_size // 2
+        enemigo_y = enemigo["fila"] * cell_size + cell_size // 2
         enemigo["obj"].forma.center = (enemigo_x, enemigo_y)
 
-    # Dibujar mapa con sprites
-    for i in range(tamano_mapa):
-        for j in range(tamano_mapa):
-            rect_celda = pygame.Rect(
-                offset_x + j * cell_size,
-                offset_y + i * cell_size,
-                cell_size, cell_size
-            )
-
-            if mapa_grilla[i][j] == 0:  # Suelo
-                sprite_escalado = pygame.transform.scale(asfalto_sprite, (cell_size, cell_size))
-                pantalla.blit(sprite_escalado, rect_celda.topleft)
-            else:  # Obstáculo
-                sprite_obst = obstaculo_mapa[i][j]
-                sprite_escalado = pygame.transform.scale(sprite_obst, (cell_size, cell_size))
-                pantalla.blit(sprite_escalado, rect_celda.topleft)
-
     # Ajustar tiempo entre pasos según Shift
-    if aumentarVelocidad:
-        tiempo_pasos = 100  # más rápido
-    else:
-        tiempo_pasos = TIEMPO_ENTRE_PASOS  # normal
+    tiempo_pasos = 100 if aumentarVelocidad else TIEMPO_ENTRE_PASOS
 
     # Movimiento del jugador por pasos
     tiempo_actual = pygame.time.get_ticks()
@@ -146,11 +146,10 @@ while correr:
         elif mover_derecha:
             col_nueva += 1
 
-        # Validar límites y muros
-        if (0 <= fila_nueva < tamano_mapa and
-            0 <= col_nueva < tamano_mapa and
+        if (0 <= fila_nueva < tamano_filas and
+            0 <= col_nueva < tamano_cols and
             mapa_grilla[fila_nueva][col_nueva] == 0):
-
+            
             jugador_fila = fila_nueva
             jugador_col = col_nueva
             tiempo_ultimo_paso = tiempo_actual
@@ -181,13 +180,12 @@ while correr:
             if event.key == pygame.K_LSHIFT:
                 aumentarVelocidad = True
 
-            # Alternar pantalla completa
             if event.key == pygame.K_F11:
                 if not pantallaCompleta:
                     pantalla = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                     pantallaCompleta = True
                 else:
-                    pantalla = pygame.display.set_mode((ANCHO_VENTANA, ALTO_VENTANA), pygame.RESIZABLE)
+                    pantalla = pygame.display.set_mode((ANCHO_VENTANA, ALTO_VENTANA))
                     pantallaCompleta = False
 
         if event.type == pygame.KEYUP:
