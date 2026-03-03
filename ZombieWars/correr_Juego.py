@@ -48,11 +48,16 @@ def calcular_tamano_mapa(ancho, alto, cell):
 
 # Generar mapa con muros aleatorios
 def generar_mundo(filas, cols):
+    
     mapa = [[0 for _ in range(cols)] for _ in range(filas)]
+    
     for i in range(filas):
+    
         for j in range(cols):
+            
             if random.random() < 0.1:
                 mapa[i][j] = 1
+
     # Asegurar posición inicial libre
     mapa[1][1] = 0
     return mapa
@@ -80,6 +85,7 @@ Jugador = Personaje(0, 0)
 cantidad_enemigos = random.randint(MIN_ENEMIGOS, MAX_ENEMIGOS)
 enemigos = []
 
+# Definir una distancia mínima para colocar enemigos lejos del jugador
 distancia_minima = 10
 for _ in range(cantidad_enemigos):
     intentos = 0
@@ -107,14 +113,17 @@ while correr:
 
     ancho, alto = pantalla.get_size()
 
-    # Dibujar mapa 
+    # Dibujar mapa
     for i in range(tamano_filas):
+        
         for j in range(tamano_cols):
             x = j * cell_size
             y = i * cell_size
-            if mapa_grilla[i][j] == 0:
-                pantalla.blit(asfalto_scaled, (x, y))
-            else:
+            # Siempre dibujar el suelo primero
+            pantalla.blit(asfalto_scaled, (x, y))
+
+            # Si hay obstáculo, dibujarlo encima del suelo
+            if mapa_grilla[i][j] == 1:
                 pantalla.blit(obstaculo_mapa[i][j], (x, y))
 
     # Convertir posición del jugador a coordenadas de pantalla
@@ -139,10 +148,13 @@ while correr:
 
         if mover_arriba:
             fila_nueva -= 1
+
         elif mover_abajo:
             fila_nueva += 1
+
         elif mover_izquierda:
             col_nueva -= 1
+    
         elif mover_derecha:
             col_nueva += 1
 

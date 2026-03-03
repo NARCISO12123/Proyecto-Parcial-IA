@@ -7,12 +7,12 @@ ALTO_VENTANA = 1080
 COLOR_FONDO = (0, 0, 20)
 
 # Tamaño del mapa 
-TAMANO_MAPA = 32
+TAMANO_MAPA = (20, 20)
 TAMANO_CELDA = 64
+
 # Enemigos
 MIN_ENEMIGOS = 18
 MAX_ENEMIGOS = 25
-
 
 # FPS
 FPS = 60
