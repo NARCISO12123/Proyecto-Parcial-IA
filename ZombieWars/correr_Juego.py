@@ -8,10 +8,109 @@ pygame.init()
 
 # Ventana
 pantalla = pygame.display.set_mode((ANCHO_VENTANA, ALTO_VENTANA))
+pygame.display.set_caption("Zombie Wars")
 pantalla_completa = False
 
 # FPS
 relog = pygame.time.Clock()
+
+#  Paleta de colores
+COLOR_FONDO    = (25, 8, 40)        # Morado oscuro
+COLOR_TITULO   = (200, 255, 100)    # Verde zombie
+COLOR_BTN      = (200, 255, 100)    # Verde zombie
+COLOR_BTN_HOV  = (220, 255, 140)    # Verde claro (hover)
+COLOR_BTN_SAL  = (180, 60, 60)      # Rojo (salir)
+COLOR_BTN_SAL_HOV = (220, 90, 90)
+COLOR_TEXTO    = (25, 8, 40)        # Texto oscuro dentro del botón
+COLOR_SUBTIT   = (180, 140, 210)    # Subtítulo lila
+
+# Fuentes
+try:
+    fuente_titulo  = pygame.font.SysFont("impact", 80)
+    fuente_subtit  = pygame.font.SysFont("consolas", 22)
+    fuente_boton   = pygame.font.SysFont("impact", 32)
+except Exception:
+    fuente_titulo  = pygame.font.Font(None, 80)
+    fuente_subtit  = pygame.font.Font(None, 22)
+    fuente_boton   = pygame.font.Font(None, 32)
+
+
+def dibujar_boton(surface, texto, rect, color_base, color_hover, color_txt, fuente):
+    """Dibuja un botón y devuelve True si el mouse está encima."""
+    mx, my = pygame.mouse.get_pos()
+    hover = rect.collidepoint(mx, my)
+    color = color_hover if hover else color_base
+
+    # Botón
+    pygame.draw.rect(surface, color, rect, border_radius=6)
+
+    # Texto centrado
+    txt_surf = fuente.render(texto, True, color_txt)
+    txt_rect = txt_surf.get_rect(center=rect.center)
+    surface.blit(txt_surf, txt_rect)
+
+    return hover
+
+
+def pantalla_inicio():
+    ancho, alto = pantalla.get_size()
+
+    # Posición de botones centrados
+    btn_w, btn_h = 260, 55
+    centro_x = ancho // 2
+    btn_jugar = pygame.Rect(centro_x - btn_w // 2, alto // 2 + 20,  btn_w, btn_h)
+    btn_salir = pygame.Rect(centro_x - btn_w // 2, alto // 2 + 100, btn_w, btn_h)
+
+    clock = pygame.time.Clock()
+    en_inicio = True
+    resultado = False
+
+    while en_inicio:
+        clock.tick(60)
+
+        pantalla.fill(COLOR_FONDO)
+
+        # Título
+        tit = fuente_titulo.render("ZOMBIE WARS", True, COLOR_TITULO)
+        pantalla.blit(tit, tit.get_rect(center=(centro_x, alto // 2 - 80)))
+
+        # Botones
+        hover_jugar = dibujar_boton(pantalla, "INICIAR JUEGO",
+                                    btn_jugar, COLOR_BTN, COLOR_BTN_HOV,
+                                    COLOR_TEXTO, fuente_boton)
+        hover_salir = dibujar_boton(pantalla, "SALIR",
+                                    btn_salir, COLOR_BTN_SAL, COLOR_BTN_SAL_HOV,
+                                    (240, 240, 240), fuente_boton)
+
+        #Eventos
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                en_inicio = False
+                resultado = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    en_inicio = False
+                    resultado = False
+                if event.key == pygame.K_RETURN:
+                    en_inicio = False
+                    resultado = True
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if hover_jugar:
+                    en_inicio = False
+                    resultado = True
+                elif hover_salir:
+                    en_inicio = False
+                    resultado = False
+
+        pygame.display.update()
+
+    return resultado
+
+#  Mostrar pantalla de inicio
+if not pantalla_inicio():
+    pygame.quit()
+    exit()
+
 
 # Movimiento
 mover_arriba = False
@@ -105,7 +204,6 @@ correr = True
 while correr:
     relog.tick(FPS)
 
-    # Obtener dimensiones actuales del mapa
     filas_mapa = len(mapa_grilla)
     cols_mapa = len(mapa_grilla[0]) if filas_mapa > 0 else 0
 
@@ -150,7 +248,6 @@ while correr:
             col_nueva += 1
             jugador.actualizar_direccion("derecha")
 
-        # Validar movimiento
         if (0 <= fila_nueva < filas_mapa and 
             0 <= col_nueva < cols_mapa and 
             mapa_grilla[fila_nueva][col_nueva] == 0 and 
@@ -159,11 +256,11 @@ while correr:
             jugador_col = col_nueva
             tiempo_ultimo_paso = tiempo_actual
 
-    # Actualizar estado del jugador
+    # Estado del jugador
     moviendose = mover_arriba or mover_abajo or mover_izquierda or mover_derecha
     jugador.set_estado("run" if moviendose and aumentar_velocidad else "walk" if moviendose else "idle")
     
-    # Dibujar
+    # Dibujar personajes
     jugador.dibujar(pantalla)
     for enemigo in enemigos:
         enemigo["obj"].dibujar(pantalla)
