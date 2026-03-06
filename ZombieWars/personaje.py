@@ -1,84 +1,63 @@
 import pygame
-import os
-import numpy as np
-from constantes import TAMANO_CELDA
+from constantes import ESCALA_JUGADOR
 
-CROP = (27, 54, 91, 128)
+# Función para escalar imágenes
+def escalar_img(image, scale):
+    w = image.get_width()
+    h = image.get_height()
+    return pygame.transform.scale(image, size=(w*scale, h*scale))
 
+# Cargar animaciones del personaje
+animaciones = {}
 
-def hacer_negro_transparente(surface, umbral=20):
-    """Convierte pixels negros/muy oscuros en transparentes."""
-    arr = pygame.surfarray.pixels3d(surface).copy()
-    alpha = pygame.surfarray.pixels_alpha(surface).copy()
-    es_negro = (arr[:,:,0] < umbral) & (arr[:,:,1] < umbral) & (arr[:,:,2] < umbral)
-    alpha[es_negro] = 0
-    result = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-    pygame.surfarray.blit_array(result, arr)
-    pygame.surfarray.pixels_alpha(result)[:] = alpha
-    return result
+# Cargar animaciones de Idle - quieto
+animaciones["idle"] = []
+for i in range(17):
+    img = pygame.image.load(f"assets/images/personaje/Idle/0_Forest_Ranger_Idle_{i:03}.png")
+    img = escalar_img(img, ESCALA_JUGADOR)
+    animaciones["idle"].append(img)
 
+# Cargar animaciones de Running - corriendo
+animaciones["Running"] = []
+for i in range(11):
+    img = pygame.image.load(f"assets/images/personaje/Running/0_Forest_Ranger_Running_{i:03}.png")
+    img = escalar_img(img, ESCALA_JUGADOR)
+    animaciones["Running"].append(img)
 
-def cargar_frames(ruta, total):
-    sheet = pygame.image.load(ruta).convert_alpha()
-    alto = sheet.get_height()
-    x1, y1, x2, y2 = CROP
-    frames = []
+# Cargar animaciones de Dying - muriendo
+animaciones["Dying"] = []
+for i in range(14):
+    img = pygame.image.load(f"assets/images/personaje/Dying/0_Forest_Ranger_Dying_{i:03}.png")
+    img = escalar_img(img, ESCALA_JUGADOR)
+    animaciones["Dying"].append(img)
 
-    for i in range(total):
-        frame = sheet.subsurface((i * alto, 0, alto, alto)).copy()
-        frame = hacer_negro_transparente(frame)
-        frame = frame.subsurface((x1, y1, x2-x1, y2-y1)).copy()  # ← Calculado directamente
-        frame = pygame.transform.scale(frame, (TAMANO_CELDA, TAMANO_CELDA))
-        frames.append(frame)
+# Cargar animaciones de Run Slashing - corriendo y atacando
+animaciones["Run Shooting"] = []
+for i in range(12):
+    img = pygame.image.load(f"assets/images/personaje/Run Shooting/0_Forest_Ranger_Run Shooting_{i:03}.png")
+    img = escalar_img(img, ESCALA_JUGADOR)
+    animaciones["Run Shooting"].append(img)
+    
+# Cargar animaciones de Run Throwing - corriendo y lanzando
+animaciones["Shooting"] = []
+for i in range(9):
+    img = pygame.image.load(f"assets/images/personaje/Shooting/0_Forest_Ranger_Shooting_{i:03}.png")
+    img = escalar_img(img, ESCALA_JUGADOR)
+    animaciones["Shooting"].append(img)
 
-    return frames
+animaciones["Walking"] = []
+for i in range(23):
+    img = pygame.image.load(f"assets/images/personaje/Walking/0_Forest_Ranger_Walking_{i:03}.png")
+    img = escalar_img(img, ESCALA_JUGADOR)
+    animaciones["Walking"].append(img)
 
+# Clase para el personaje
 class Personaje:
-
     def __init__(self, x, y):
-        self.vida = 5
-        
-        carpeta = os.path.join(os.path.dirname(os.path.dirname(__file__)), 
-                               "assets", "images", "personaje")
-
-        self.animaciones = {
-            "idle":  cargar_frames(os.path.join(carpeta, "Idle.png"), 6),
-            "idle2": cargar_frames(os.path.join(carpeta, "Idle_2.png"), 11),
-            "walk":  cargar_frames(os.path.join(carpeta, "Walk.png"), 10),
-            "run":   cargar_frames(os.path.join(carpeta, "Run.png"), 10),
-        }
-
-        self.estado = "idle"
-        self.frame = 0
-        self.tick = 0
-        self.voltear = False
-
-        self.forma = pygame.Rect(0, 0, TAMANO_CELDA, TAMANO_CELDA)
-        self.forma.center = (x, y)
-
-    def perder_vida(self):
-        self.vida = max(0, self.vida - 1)
-        return self.vida == 0
-
-    def recuperar_vida(self):
-        self.vida += 1
-
-    def set_estado(self, estado):
-        if estado != self.estado:
-            self.estado = estado
-            self.frame = 0
-            self.tick = 0
-
-    def actualizar_direccion(self, direccion):
-        self.voltear = direccion in ("izquierda", "abajo")
-
-    def dibujar(self, pantalla):
-        self.tick += 1
-        if self.tick % 8 == 0:
-            self.frame = (self.frame + 1) % len(self.animaciones[self.estado])
-
-        frame = self.animaciones[self.estado][self.frame]
-        if self.voltear:
-            frame = pygame.transform.flip(frame, True, False)
-
-        pantalla.blit(frame, frame.get_rect(center=self.forma.center))
+        self.animaciones = animaciones
+        self.animacion_actual = "idle"
+        self.frame_actual = 0
+        self.image = self.animaciones[self.animacion_actual][self.frame_actual]
+        self.forma = self.image.get_rect()
+        self.forma.topleft = (x, y)
+        self.tiempo_ultimo_frame = pygame.time.get_ticks()
