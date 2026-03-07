@@ -12,8 +12,8 @@ TAMANO_MAPA = 20
 TAMANO_CELDA = 32
 
 # Enemigos
-MIN_ENEMIGOS = 5
-MAX_ENEMIGOS = 12
+MIN_ENEMIGOS = 1
+MAX_ENEMIGOS = 4
 
 # FPS
 FPS = 60
@@ -23,3 +23,16 @@ ESCALA_ENEMIGO = 0.1
 
 # Tiempo entre pasos del jugador (milisegundos)
 TIEMPO_ENTRE_PASOS = 200
+
+# Tamaño de cada tile en píxeles
+TILE_SIZE = 22
+
+# Vida y daño 
+VIDA_MAX_JUGADOR = 100
+VIDA_MAX_ENEMIGO = 100
+
+DANIO_BALA      = 20 
+DANIO_CONTACTO  = 10    
+INTERVALO_DANIO = 800   
+
+DIST_DANIO_PX   = TILE_SIZE * 1.5  

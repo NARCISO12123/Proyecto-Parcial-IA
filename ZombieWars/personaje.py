@@ -32,14 +32,14 @@ for i in range(14):
     img = escalar_img(img, ESCALA_JUGADOR)
     animaciones["Dying"].append(img)
 
-# Cargar animaciones de Run Slashing - corriendo y atacando
+# Cargar animaciones de Run Shooting - corriendo y disparando
 animaciones["Run Shooting"] = []
 for i in range(12):
     img = pygame.image.load(f"assets/images/personaje/Run Shooting/0_Forest_Ranger_Run Shooting_{i:03}.png")
     img = escalar_img(img, ESCALA_JUGADOR)
     animaciones["Run Shooting"].append(img)
 
-# Cargar animaciones de Run Throwing - corriendo y lanzando
+# Cargar animaciones de Shooting - disparando
 animaciones["Shooting"] = []
 for i in range(9):
     img = pygame.image.load(f"assets/images/personaje/Shooting/0_Forest_Ranger_Shooting_{i:03}.png")
@@ -52,12 +52,12 @@ for i in range(23):
     img = escalar_img(img, ESCALA_JUGADOR)
     animaciones["Walking"].append(img)
 
-
+# Clase para las balas disparadas por el personaje
 class Bala:
     VELOCIDAD = 18
     DURACION  = 40
     COLOR     = (255, 230, 80)
-    LARGO     = 14
+    LARGO     = 8
     GROSOR    = 3
 
     def __init__(self, x, y, mx, my):
@@ -89,6 +89,8 @@ class Bala:
 
 # Clase para el personaje
 class Personaje:
+    VIDA_MAX = 100
+
     def __init__(self, x, y):
         self.animaciones = animaciones
         self.animacion_actual = "idle"
@@ -97,12 +99,38 @@ class Personaje:
         self.forma = self.image.get_rect()
         self.forma.topleft = (x, y)
         self.tiempo_ultimo_frame = pygame.time.get_ticks()
-        self.voltear = False  # indica si el sprite debe voltearse horizontalmente
-        self.disparando = False  # indica si está en animación de disparo
+        self.voltear   = False   
+        self.disparando = False  
         self.balas = []
 
+        # Sistema de vida
+        self.vida     = self.VIDA_MAX
+        self.muriendo = False   
+        self.muerto   = False   
+
+    #  Vida y daño
+
+    def recibir_danio(self, cantidad):
+        if self.muriendo or self.muerto:
+            return
+        self.vida = max(self.vida - cantidad, 0)
+        
+        if self.vida <= 0:
+            self._iniciar_muerte()
+
+    def _iniciar_muerte(self):
+        self.muriendo = True
+        self.disparando = False
+        self.animacion_actual = "Dying"
+        self.frame_actual = 0
+        self.tiempo_ultimo_frame = pygame.time.get_ticks()
+
+    # Disparar
+
     def disparar(self, mx, my):
-        # Iniciar animación de disparo y crear bala
+        # No disparar si está muriendo
+        if self.muriendo or self.muerto:
+            return
         self.disparando = True
         self.animacion_actual = "Shooting"
         self.frame_actual = 0
@@ -114,23 +142,27 @@ class Personaje:
         # Mover balas y detectar colisiones con enemigos y obstáculos
         eliminados = []
         vivas = []
-        cols = len(mapa_grilla[0]) if mapa_grilla else 0
+        cols  = len(mapa_grilla[0]) if mapa_grilla else 0
         filas = len(mapa_grilla)
 
         for bala in self.balas:
             bala.actualizar()
+            
             if not bala.vivo():
                 continue
 
             col_b = int(bala.x) // (filas or 1)
             fil_b = int(bala.y) // (cols or 1)
+            
             if not (0 <= fil_b < filas and 0 <= col_b < cols):
                 continue
+            
             if mapa_grilla[fil_b][col_b] == 1:
                 continue
 
             impacto = False
             for e in enemigos:
+            
                 if bala.rect().colliderect(e["obj"].forma):
                     impacto = True
                     eliminados.append(e)
@@ -141,3 +173,24 @@ class Personaje:
 
         self.balas = vivas
         return eliminados
+
+    # ── Animación de muerte (llamada desde main.py en animar()) ───
+
+    def actualizar_muerte(self):
+        if not self.muriendo:
+            return
+        ahora = pygame.time.get_ticks()
+        
+        if ahora - self.tiempo_ultimo_frame > 80:
+            self.frame_actual += 1
+            self.tiempo_ultimo_frame = ahora
+            frames = self.animaciones["Dying"]
+           
+            if self.frame_actual >= len(frames):
+                # Animación terminada
+                self.frame_actual = len(frames) - 1
+                self.muriendo = False
+                self.muerto   = True
+        
+        frame = self.animaciones["Dying"][self.frame_actual]
+        self.image = pygame.transform.flip(frame, self.voltear, False)

@@ -5,6 +5,7 @@ from personaje import Personaje
 from Enemigos import Enemigo
 from constantes import *
 from mapa import cargar_mapa_tmx, construir_grilla_colision, dibujar_mapa, cargar_colisiones, verificar_colision
+from pantallas import pantalla_inicio, pantalla_game_over, menu_pausa, dibujar_mensaje_ronda, fuente_boton, COLOR_TITULO
 
 pygame.init()
 pygame.mixer.init()
@@ -28,123 +29,94 @@ RUTA_MAPA = os.path.join(BASE, "assets", "mapa", "mapa2.tmx")
 # Cargamos el mapa antes de todo para poder calcular el tamaño del tile
 mapa_tmx, filas, cols = cargar_mapa_tmx(RUTA_MAPA)
 
-# Tamaño de cada tile en píxeles
-TILE_SIZE = 22
+# Colores de las barras de vida
+COLOR_VIDA_FONDO   = (80, 0, 0)
+COLOR_VIDA_JUGADOR = (80, 220, 80)
+COLOR_VIDA_ENEMIGO = (220, 60, 60)
+COLOR_VIDA_BORDE   = (0, 0, 0)
 
-# Colores del menú
-COLOR_FONDO       = (25, 8, 40)
-COLOR_TITULO      = (200, 255, 100)
-COLOR_BTN         = (200, 255, 100)
-COLOR_BTN_HOV     = (220, 255, 140)
-COLOR_BTN_SAL     = (180, 60, 60)
-COLOR_BTN_SAL_HOV = (220, 90, 90)
-COLOR_TEXTO       = (25, 8, 40)
+# Colores HUD esquina
+COLOR_HUD_FONDO = (15, 5, 25, 180)
+COLOR_HUD_BARRA = (60, 200, 60)
+COLOR_HUD_BAJA  = (220, 80, 40)
+COLOR_HUD_VACIA = (60, 10, 10)
+COLOR_HUD_BORDE = (200, 255, 100)
+COLOR_HUD_TEXTO = (200, 255, 100)
 
-# Fuentes para el menú y los mensajes de ronda
+
 try:
-    fuente_titulo  = pygame.font.SysFont("impact", 80)
-    fuente_boton   = pygame.font.SysFont("impact", 32)
-    fuente_ronda   = pygame.font.SysFont("impact", 60)
+    fuente_hud_label = pygame.font.SysFont("impact", 16)
+    fuente_hud_num   = pygame.font.SysFont("impact", 26)
 except Exception:
-    fuente_titulo  = pygame.font.Font(None, 80)
-    fuente_boton   = pygame.font.Font(None, 32)
-    fuente_ronda   = pygame.font.Font(None, 60)
+    fuente_hud_label = pygame.font.Font(None, 16)
+    fuente_hud_num   = pygame.font.Font(None, 26)
 
 
-def dibujar_boton(surface, texto, rect, color_base, color_hover, color_txt, fuente):
-    hover = rect.collidepoint(pygame.mouse.get_pos())
-    pygame.draw.rect(surface, color_hover if hover else color_base, rect, border_radius=6)
-    txt_surf = fuente.render(texto, True, color_txt)
-    surface.blit(txt_surf, txt_surf.get_rect(center=rect.center))
-    return hover
+def dibujar_barra_vida(surface, cx, cy, vida_actual, vida_max, color_vida, ancho=30, alto=4):
+    x = cx - ancho // 2
+    y = cy
+    pygame.draw.rect(surface, COLOR_VIDA_FONDO, (x, y, ancho, alto))
+    relleno = int(ancho * max(vida_actual, 0) / vida_max)
+    if relleno > 0:
+        pygame.draw.rect(surface, color_vida, (x, y, relleno, alto))
+    pygame.draw.rect(surface, COLOR_VIDA_BORDE, (x, y, ancho, alto), 1)
 
-def pantalla_inicio():
-    ancho, alto = pantalla.get_size()
-    btn_w, btn_h = 260, 55
-    cx = ancho // 2
-    btn_jugar = pygame.Rect(cx - btn_w // 2, alto // 2 + 20,  btn_w, btn_h)
-    btn_salir = pygame.Rect(cx - btn_w // 2, alto // 2 + 100, btn_w, btn_h)
 
-    # Bucle del menú de inicio
-    while True:
-        relog.tick(60)
-        pantalla.fill(COLOR_FONDO)
-        tit = fuente_titulo.render("ZOMBIE WARS", True, COLOR_TITULO)
-        pantalla.blit(tit, tit.get_rect(center=(cx, alto // 2 - 80)))
-        hover_jugar = dibujar_boton(pantalla, "INICIAR JUEGO", btn_jugar, COLOR_BTN,     COLOR_BTN_HOV,     COLOR_TEXTO,     fuente_boton)
-        hover_salir = dibujar_boton(pantalla, "SALIR",         btn_salir, COLOR_BTN_SAL, COLOR_BTN_SAL_HOV, (240, 240, 240), fuente_boton)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    return False
-                if event.key == pygame.K_RETURN:
-                    return True
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if hover_jugar:
-                    return True
-                if hover_salir:
-                    return False
-        pygame.display.update()
+def dibujar_hud_vida(surface, vida_actual, vida_max):
+    ancho_panel = 160
+    alto_panel  = 48
+    margen      = 12
+    sw = surface.get_width()
+    x_panel = sw - ancho_panel - margen
+    y_panel = margen
 
-def menu_pausa():
-    ancho, alto = pantalla.get_size()
-    btn_w, btn_h = 260, 55
-    cx = ancho // 2
-    btn_reanudar  = pygame.Rect(cx - btn_w // 2, alto // 2 - 40,  btn_w, btn_h)
-    btn_reiniciar = pygame.Rect(cx - btn_w // 2, alto // 2 + 40,  btn_w, btn_h)
-    btn_salir     = pygame.Rect(cx - btn_w // 2, alto // 2 + 120, btn_w, btn_h)
-    fuente_pausa  = pygame.font.SysFont("impact", 60)
-    overlay = pygame.Surface((ancho, alto), pygame.SRCALPHA)
-    overlay.fill((0, 0, 0, 160))
+    panel = pygame.Surface((ancho_panel, alto_panel), pygame.SRCALPHA)
+    panel.fill(COLOR_HUD_FONDO)
+    surface.blit(panel, (x_panel, y_panel))
+    pygame.draw.rect(surface, COLOR_HUD_BORDE,
+                     (x_panel, y_panel, ancho_panel, alto_panel), 2, border_radius=4)
 
-    # Bucle del menú de pausa
-    while True:
-        relog.tick(60)
-        pantalla.blit(overlay, (0, 0))
-        tit = fuente_pausa.render("PAUSA", True, COLOR_TITULO)
-        pantalla.blit(tit, tit.get_rect(center=(cx, alto // 2 - 120)))
-        hover_reanudar  = dibujar_boton(pantalla, "REANUDAR",  btn_reanudar,  COLOR_BTN,     COLOR_BTN_HOV,     COLOR_TEXTO,     fuente_boton)
-        hover_reiniciar = dibujar_boton(pantalla, "REINICIAR", btn_reiniciar, COLOR_BTN,     COLOR_BTN_HOV,     COLOR_TEXTO,     fuente_boton)
-        hover_salir     = dibujar_boton(pantalla, "SALIR",     btn_salir,     COLOR_BTN_SAL, COLOR_BTN_SAL_HOV, (240, 240, 240), fuente_boton)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return "salir"
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                return "reanudar"
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if hover_reanudar:
-                    return "reanudar"
-                if hover_reiniciar:
-                    return "reiniciar"
-                if hover_salir:
-                    return "salir"
-        pygame.display.update()
+    lbl = fuente_hud_label.render("HP", True, COLOR_HUD_TEXTO)
+    surface.blit(lbl, (x_panel + 8, y_panel + 6))
+
+    num_txt = fuente_hud_num.render(f"{max(vida_actual, 0)}", True, COLOR_HUD_TEXTO)
+    surface.blit(num_txt, (x_panel + ancho_panel - num_txt.get_width() - 8, y_panel + 4))
+
+    barra_x = x_panel + 8
+    barra_y = y_panel + alto_panel - 16
+    barra_w = ancho_panel - 16
+    barra_h = 10
+    pygame.draw.rect(surface, COLOR_HUD_VACIA, (barra_x, barra_y, barra_w, barra_h), border_radius=3)
+    relleno = int(barra_w * max(vida_actual, 0) / vida_max)
+    if relleno > 0:
+        color_barra = COLOR_HUD_BAJA if vida_actual / vida_max < 0.30 else COLOR_HUD_BARRA
+        pygame.draw.rect(surface, color_barra, (barra_x, barra_y, relleno, barra_h), border_radius=3)
+    pygame.draw.rect(surface, COLOR_HUD_BORDE, (barra_x, barra_y, barra_w, barra_h), 1, border_radius=3)
 
 
 # Mostramos el menú de inicio antes de entrar al juego
-if not pantalla_inicio():
+if not pantalla_inicio(pantalla, relog):
     pygame.quit()
     exit()
 
 
 def hay_enemigo(fila, col, enemigos):
-    # Revisa si ya hay un enemigo ocupando esa celda
     return any(e["fila"] == fila and e["col"] == col for e in enemigos)
 
 
 def animar(entidad, moviendose, corriendo=False, direccion=None):
     ahora = pygame.time.get_ticks()
 
-    # Si está disparando, dejamos que termine esa animación primero
+    if getattr(entidad, "muriendo", False):
+        entidad.actualizar_muerte()
+        return
+
     if getattr(entidad, "disparando", False):
         velocidad_frame = 80
         if ahora - entidad.tiempo_ultimo_frame > velocidad_frame:
             entidad.frame_actual += 1
             entidad.tiempo_ultimo_frame = ahora
             if entidad.frame_actual >= len(entidad.animaciones["Shooting"]):
-                # Terminó la animación de disparo, volvemos a idle
                 entidad.disparando = False
                 entidad.frame_actual = 0
                 entidad.animacion_actual = "idle"
@@ -152,7 +124,6 @@ def animar(entidad, moviendose, corriendo=False, direccion=None):
         entidad.image = pygame.transform.flip(frame, entidad.voltear, False)
         return
 
-    # Elegimos la animación según si se está moviendo o no
     anim = "Running" if moviendose else "idle"
     velocidad_frame = 60 if corriendo else 100
     if anim != entidad.animacion_actual:
@@ -163,13 +134,12 @@ def animar(entidad, moviendose, corriendo=False, direccion=None):
         entidad.frame_actual = (entidad.frame_actual + 1) % len(entidad.animaciones[anim])
         entidad.tiempo_ultimo_frame = ahora
 
-    # Voltear sprite según dirección horizontal
     if direccion == "izquierda":
         entidad.voltear = True
     elif direccion == "derecha":
         entidad.voltear = False
     frame = entidad.animaciones[entidad.animacion_actual][entidad.frame_actual]
-    entidad.image = pygame.transform.flip(frame, entidad.voltear, False)  # flip horizontal si voltear es True
+    entidad.image = pygame.transform.flip(frame, entidad.voltear, False)
 
 
 def dibujar_entidad(entidad, pantalla):
@@ -177,7 +147,6 @@ def dibujar_entidad(entidad, pantalla):
 
 
 def spawnar_enemigos():
-    # Cada ronda trae un enemigo extra para que se ponga más difícil
     nuevos = []
     cantidad = random.randint(MIN_ENEMIGOS, MAX_ENEMIGOS) + ronda
     for _ in range(cantidad):
@@ -194,42 +163,43 @@ def spawnar_enemigos():
 
 
 def reiniciar_partida():
-    global jugador_fila, jugador_col, jugador, enemigos, mapa_grilla, ronda, mostrando_ronda, tiempo_mensaje_ronda
+    global jugador_fila, jugador_col, jugador, enemigos, mapa_grilla
+    global ronda, mostrando_ronda, tiempo_mensaje_ronda, tiempo_ultimo_danio
     mapa_grilla = construir_grilla_colision(mapa_tmx, filas, cols)
     mapa_grilla[1][1] = 0
     jugador_fila, jugador_col = 1, 1
     jugador = Personaje(0, 0)
-    # Reiniciamos la ronda desde 1
     ronda = 1
     mostrando_ronda = False
     tiempo_mensaje_ronda = 0
+    tiempo_ultimo_danio  = 0
     enemigos = spawnar_enemigos()
 
 
 escala_colision = TILE_SIZE / mapa_tmx.tilewidth
 colisiones = cargar_colisiones(mapa_tmx, escala_colision)
 
-# Variables para el sistema de rondas
 ronda = 1
 mostrando_ronda = False
 tiempo_mensaje_ronda = 0
+tiempo_ultimo_danio  = 0
 
 reiniciar_partida()
 
 # Variables de movimiento del jugador
-mover_arriba = False
-mover_abajo = False
-mover_izquierda = False
-mover_derecha = False
+mover_arriba      = False
+mover_abajo       = False
+mover_izquierda   = False
+mover_derecha     = False
 aumentar_velocidad = False
 tiempo_ultimo_paso = 0
 
-# Bucle principal
+# ── Bucle principal
 correr = True
 while correr:
     relog.tick(FPS)
 
-    pantalla.fill(COLOR_FONDO)
+    pantalla.fill((25, 8, 40))
 
     ancho_actual, alto_actual = pantalla.get_size()
     offset_x = (ancho_actual - cols * TILE_SIZE) // 2
@@ -253,57 +223,116 @@ while correr:
     tiempo_pasos  = 100 if aumentar_velocidad else TIEMPO_ENTRE_PASOS
     tiempo_actual = pygame.time.get_ticks()
 
-    # Movimiento del jugador basado en las teclas presionadas
-    if tiempo_actual - tiempo_ultimo_paso > tiempo_pasos:
-        fila_nueva = jugador_fila
-        col_nueva  = jugador_col
+    # Movimiento del jugador (bloqueado si está muriendo o muerto)
+    if not jugador.muriendo and not jugador.muerto:
+        if tiempo_actual - tiempo_ultimo_paso > tiempo_pasos:
+            fila_nueva = jugador_fila
+            col_nueva  = jugador_col
 
-        if mover_arriba:
-            fila_nueva -= 1
+            if mover_arriba:
+                fila_nueva -= 1
+            elif mover_abajo:
+                fila_nueva += 1
+            elif mover_izquierda:
+                col_nueva -= 1
+            elif mover_derecha:
+                col_nueva += 1
 
-        elif mover_abajo:
-            fila_nueva += 1
+            rect_jugador = pygame.Rect(
+                offset_x + col_nueva  * TILE_SIZE,
+                offset_y + fila_nueva * TILE_SIZE,
+                TILE_SIZE, TILE_SIZE
+            )
+            rects_colision_offset = [
+                pygame.Rect(r.x + offset_x, r.y + offset_y, r.width, r.height)
+                for r in colisiones
+            ]
 
-        elif mover_izquierda:
-            col_nueva -= 1
-
-        elif mover_derecha:
-            col_nueva += 1
-
-        rect_jugador = pygame.Rect(
-            offset_x + col_nueva  * TILE_SIZE,
-            offset_y + fila_nueva * TILE_SIZE,
-            TILE_SIZE, TILE_SIZE
-        )
-        rects_colision_offset = [
-            pygame.Rect(r.x + offset_x, r.y + offset_y, r.width, r.height)
-            for r in colisiones
-        ]
-
-        # Solo movemos si la celda es válida y no hay colisión
-        if (0 <= fila_nueva < filas and
-            0 <= col_nueva  < cols  and
-            not hay_enemigo(fila_nueva, col_nueva, enemigos) and
-            not verificar_colision(rect_jugador, 0, 0, rects_colision_offset, ancho_actual, alto_actual)):
-            jugador_fila, jugador_col = fila_nueva, col_nueva
-            tiempo_ultimo_paso = tiempo_actual
+            if (0 <= fila_nueva < filas and
+                0 <= col_nueva  < cols  and
+                not hay_enemigo(fila_nueva, col_nueva, enemigos) and
+                not verificar_colision(rect_jugador, 0, 0, rects_colision_offset, ancho_actual, alto_actual)):
+                jugador_fila, jugador_col = fila_nueva, col_nueva
+                tiempo_ultimo_paso = tiempo_actual
 
     moviendose = mover_arriba or mover_abajo or mover_izquierda or mover_derecha
-    # Determinar dirección para voltear el sprite
-    direccion = "izquierda" if mover_izquierda else "derecha" if mover_derecha else None
+    direccion  = "izquierda" if mover_izquierda else "derecha" if mover_derecha else None
     animar(jugador, moviendose, aumentar_velocidad, direccion)
     dibujar_entidad(jugador, pantalla)
 
-    # Actualizamos las balas y eliminamos enemigos que fueron impactados
-    eliminados = jugador.actualizar_balas(mapa_grilla, enemigos)
-    for e in eliminados:
-        enemigos.remove(e)
-    for bala in jugador.balas:
-        bala.dibujar(pantalla)
+    # Barra pequeña encima del sprite del jugador
+    dibujar_barra_vida(
+        pantalla,
+        jugador.forma.centerx,
+        jugador.forma.top - 8,
+        jugador.vida,
+        VIDA_MAX_JUGADOR,
+        COLOR_VIDA_JUGADOR,
+        ancho=32, alto=5
+    )
 
-    for enemigo in enemigos:
-        animar(enemigo["obj"], False, False)
-        dibujar_entidad(enemigo["obj"], pantalla)
+    # HUD grande de vida en esquina superior derecha
+    dibujar_hud_vida(pantalla, jugador.vida, VIDA_MAX_JUGADOR)
+
+    # Balas
+    if not jugador.muriendo and not jugador.muerto:
+        impactados = jugador.actualizar_balas(mapa_grilla, enemigos)
+        for e in impactados:
+            e["obj"].recibir_danio(DANIO_BALA)
+        for bala in jugador.balas:
+            bala.dibujar(pantalla)
+
+    # Actualización de enemigos con A* y árbol de comportamiento
+    for enemigo in enemigos[:]:
+        obj = enemigo["obj"]
+
+        nueva_fila, nueva_col = obj.actualizar(
+            enemigo["fila"],
+            enemigo["col"],
+            jugador_fila,
+            jugador_col,
+            mapa_grilla,
+            enemigos,
+        )
+        enemigo["fila"] = nueva_fila
+        enemigo["col"]  = nueva_col
+
+        # Eliminar enemigos cuya animación de muerte terminó
+        if not obj.vivo:
+            enemigos.remove(enemigo)
+            continue
+
+        dibujar_entidad(obj, pantalla)
+
+        # Barra de vida del enemigo encima de su sprite
+        dibujar_barra_vida(
+            pantalla,
+            obj.forma.centerx,
+            obj.forma.top - 8,
+            obj.vida,
+            VIDA_MAX_ENEMIGO,
+            COLOR_VIDA_ENEMIGO,
+            ancho=28, alto=4
+        )
+
+        # Daño por proximidad: usamos distancia en píxeles entre sprites
+        if not obj.muriendo and not jugador.muriendo and not jugador.muerto:
+            dx = obj.forma.centerx - jugador.forma.centerx
+            dy = obj.forma.centery - jugador.forma.centery
+            dist_px = (dx * dx + dy * dy) ** 0.5
+            if (dist_px <= DIST_DANIO_PX and
+                    tiempo_actual - tiempo_ultimo_danio > INTERVALO_DANIO):
+                jugador.recibir_danio(DANIO_CONTACTO)
+                tiempo_ultimo_danio = tiempo_actual
+
+    # Cuando la animación de muerte del jugador termina → Game Over
+    if jugador.muerto:
+        seguir = pantalla_game_over(pantalla, relog)
+        if seguir:
+            reiniciar_partida()
+        else:
+            correr = False
+        continue
 
     # Si no quedan enemigos, subimos la ronda
     if not enemigos and not mostrando_ronda:
@@ -313,62 +342,53 @@ while correr:
 
     # Mostramos el mensaje de nueva ronda por 2 segundos
     if mostrando_ronda:
-        overlay = pygame.Surface((ancho_actual, alto_actual), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 120))
-        pantalla.blit(overlay, (0, 0))
-        msg = fuente_ronda.render(f"RONDA {ronda}", True, COLOR_TITULO)
-        pantalla.blit(msg, msg.get_rect(center=(ancho_actual // 2, alto_actual // 2)))
+        dibujar_mensaje_ronda(pantalla, ronda)
         if pygame.time.get_ticks() - tiempo_mensaje_ronda > 2000:
             mostrando_ronda = False
             enemigos = spawnar_enemigos()
 
-    # Número de ronda actual en la esquina
+    # Número de ronda actual en la esquina superior izquierda
     txt_ronda = fuente_boton.render(f"Ronda: {ronda}", True, COLOR_TITULO)
     pantalla.blit(txt_ronda, (10, 10))
 
-    # Eventos del juego 
+    # Eventos del juego
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             correr = False
-        
-        # Click izquierdo para disparar hacia el mouse
+
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             mx, my = pygame.mouse.get_pos()
             jugador.disparar(mx, my)
 
-        # Eventos de teclado para movimiento y menú de pausa
         if event.type == pygame.KEYDOWN:
-
             if event.key == pygame.K_ESCAPE:
-                accion = menu_pausa()
-
+                accion = menu_pausa(pantalla, relog)
                 if accion == "salir":
                     correr = False
-
                 elif accion == "reiniciar":
                     reiniciar_partida()
 
             if event.key == pygame.K_w:
                 mover_arriba = True
-
+            
             if event.key == pygame.K_s:
                 mover_abajo = True
-
+            
             if event.key == pygame.K_a:
                 mover_izquierda = True
-
+            
             if event.key == pygame.K_d:
                 mover_derecha = True
-
+            
             if event.key == pygame.K_LSHIFT:
                 aumentar_velocidad = True
 
-            # pantalla completa
             if event.key == pygame.K_HOME:
-
+                
                 if not pantalla_completa:
                     pantalla = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                     pantalla_completa = True
+                
                 else:
                     pantalla = pygame.display.set_mode((ANCHO_VENTANA, ALTO_VENTANA))
                     pantalla_completa = False
@@ -376,16 +396,16 @@ while correr:
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_w:
                 mover_arriba = False
-
+            
             if event.key == pygame.K_s:
                 mover_abajo = False
-
+            
             if event.key == pygame.K_a:
                 mover_izquierda = False
-
+            
             if event.key == pygame.K_d:
                 mover_derecha = False
-
+            
             if event.key == pygame.K_LSHIFT:
                 aumentar_velocidad = False
 
