@@ -1,3 +1,6 @@
+# Nombre:  Narciso Beras 
+# Matrícula:  24-EISN-2-026
+
 import pygame
 import heapq
 import time
@@ -143,13 +146,7 @@ class Enemigo:
 
     # Árbol de comportamiento 
     def _construir_bt(self):
-        """
-        Prioridad (Selector):
-          1. Si está muriendo → animar muerte
-          2. Si está cerca    → atacar (Slashing) y avanzar
-          3. Si está a media distancia → correr siguiendo A*
-          4. Si está lejos    → caminar siguiendo A*
-        """
+  
         self.bt = Selector([
             Secuencia([
                 Condicion(lambda: self.muriendo),
@@ -176,7 +173,7 @@ class Enemigo:
             self.voltear = self._jugador_col < self._col
 
     def _recalcular_ruta(self, grilla, otros_enemigos):
-        """Llama a A* y guarda la ruta. Respeta el intervalo para no calcular cada frame."""
+        
         ahora = pygame.time.get_ticks()
         if ahora - self.tiempo_ruta < self.INTERVALO_RUTA and self.ruta:
             return

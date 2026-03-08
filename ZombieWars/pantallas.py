@@ -1,3 +1,6 @@
+# Nombre:  Narciso Beras 
+# Matrícula:  24-EISN-2-026
+
 import pygame
 from constantes import *
 

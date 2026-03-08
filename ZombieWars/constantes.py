@@ -1,4 +1,9 @@
+# Nombre:  Narciso Beras 
+# Matrícula:  24-EISN-2-026
+
+
 import pygame
+
 pygame.init()
 info = pygame.display.Info()
 ANCHO_VENTANA = info.current_w

@@ -1,3 +1,6 @@
+# Nombre:  Narciso Beras 
+# Matrícula:  24-EISN-2-026
+
 import os
 import pygame
 import random
@@ -320,6 +323,7 @@ while correr:
             dx = obj.forma.centerx - jugador.forma.centerx
             dy = obj.forma.centery - jugador.forma.centery
             dist_px = (dx * dx + dy * dy) ** 0.5
+            
             if (dist_px <= DIST_DANIO_PX and
                     tiempo_actual - tiempo_ultimo_danio > INTERVALO_DANIO):
                 jugador.recibir_danio(DANIO_CONTACTO)
@@ -339,6 +343,10 @@ while correr:
         ronda += 1
         mostrando_ronda = True
         tiempo_mensaje_ronda = pygame.time.get_ticks()
+
+        # Cada 5 rondas el jugador recupera 10 de vida 
+        if ronda % 5 == 0:
+            jugador.vida = min(jugador.vida + 50, VIDA_MAX_JUGADOR)
 
     # Mostramos el mensaje de nueva ronda por 2 segundos
     if mostrando_ronda:
