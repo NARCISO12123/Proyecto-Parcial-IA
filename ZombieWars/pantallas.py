@@ -26,6 +26,24 @@ except Exception:
     fuente_ronda    = pygame.font.Font(None, 60)
     fuente_gameover = pygame.font.Font(None, 90)
 
+
+# Estado compartido de pantalla completa
+_pantalla_completa = False
+
+def _toggle_pantalla_completa(pantalla):
+
+    global _pantalla_completa
+
+    if not _pantalla_completa:
+        nueva = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        _pantalla_completa = True
+
+    else:
+        nueva = pygame.display.set_mode((ANCHO_VENTANA, ALTO_VENTANA))
+        _pantalla_completa = False
+    return nueva
+
+
 # Funciones para dibujar pantallas y botones
 def dibujar_boton(surface, texto, rect, color_base, color_hover, color_txt, fuente):
     hover = rect.collidepoint(pygame.mouse.get_pos())
@@ -50,7 +68,6 @@ def pantalla_inicio(pantalla, relog):
         pantalla.blit(tit, tit.get_rect(center=(cx, alto // 2 - 80)))
         hover_jugar = dibujar_boton(pantalla, "INICIAR JUEGO", btn_jugar, COLOR_BTN,     COLOR_BTN_HOV,     COLOR_TEXTO,     fuente_boton)
         hover_salir = dibujar_boton(pantalla, "SALIR",         btn_salir, COLOR_BTN_SAL, COLOR_BTN_SAL_HOV, (240, 240, 240), fuente_boton)
-        
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -62,6 +79,14 @@ def pantalla_inicio(pantalla, relog):
                
                 if event.key == pygame.K_RETURN:
                     return True
+
+                # Pantalla completa desde el menú de inicio
+                if event.key == pygame.K_HOME:
+                    pantalla = _toggle_pantalla_completa(pantalla)
+                    ancho, alto = pantalla.get_size()
+                    cx = ancho // 2
+                    btn_jugar = pygame.Rect(cx - btn_w // 2, alto // 2 + 20,  btn_w, btn_h)
+                    btn_salir = pygame.Rect(cx - btn_w // 2, alto // 2 + 100, btn_w, btn_h)
             
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if hover_jugar:
@@ -95,11 +120,19 @@ def pantalla_game_over(pantalla, relog):
             if event.type == pygame.QUIT:
                 return False
             
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                return False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return False
+
+                # Pantalla completa desde Game Over
+                if event.key == pygame.K_HOME:
+                    pantalla = _toggle_pantalla_completa(pantalla)
+                    ancho, alto = pantalla.get_size()
+                    cx = ancho // 2
+                    btn_reiniciar = pygame.Rect(cx - btn_w // 2, alto // 2 + 40,  btn_w, btn_h)
+                    btn_salir     = pygame.Rect(cx - btn_w // 2, alto // 2 + 120, btn_w, btn_h)
             
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            
                 if hover_reiniciar:
                     return True
             
@@ -137,8 +170,20 @@ def menu_pausa(pantalla, relog):
             if event.type == pygame.QUIT:
                 return "salir"
         
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                return "reanudar"
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return "reanudar"
+
+                # Pantalla completa desde la pausa
+                if event.key == pygame.K_HOME:
+                    pantalla = _toggle_pantalla_completa(pantalla)
+                    ancho, alto = pantalla.get_size()
+                    cx = ancho // 2
+                    btn_reanudar  = pygame.Rect(cx - btn_w // 2, alto // 2 - 40,  btn_w, btn_h)
+                    btn_reiniciar = pygame.Rect(cx - btn_w // 2, alto // 2 + 40,  btn_w, btn_h)
+                    btn_salir     = pygame.Rect(cx - btn_w // 2, alto // 2 + 120, btn_w, btn_h)
+                    overlay = pygame.Surface((ancho, alto), pygame.SRCALPHA)
+                    overlay.fill((0, 0, 0, 160))
         
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
         
@@ -151,6 +196,7 @@ def menu_pausa(pantalla, relog):
                 if hover_salir:
                     return "salir"
         pygame.display.update()
+
 
 # Pantallas de juego
 def dibujar_mensaje_ronda(pantalla, ronda):

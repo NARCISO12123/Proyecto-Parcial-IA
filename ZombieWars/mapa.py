@@ -2,7 +2,7 @@
 # Matrícula:  24-EISN-2-026
 
 import pygame
-import pytmx
+import pytmx 
 
 # Funciones para cargar mapa, colisiones y dibujar el mapa
 def cargar_mapa_tmx(ruta):

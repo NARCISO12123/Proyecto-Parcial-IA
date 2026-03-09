@@ -1,6 +1,3 @@
-# Nombre:  Narciso Beras 
-# Matrícula:  24-EISN-2-026
-
 import os
 import pygame
 import random
@@ -169,8 +166,8 @@ def reiniciar_partida():
     global jugador_fila, jugador_col, jugador, enemigos, mapa_grilla
     global ronda, mostrando_ronda, tiempo_mensaje_ronda, tiempo_ultimo_danio
     mapa_grilla = construir_grilla_colision(mapa_tmx, filas, cols)
-    mapa_grilla[1][1] = 0
-    jugador_fila, jugador_col = 1, 1
+    mapa_grilla[filas // 2][cols // 2] = 0
+    jugador_fila, jugador_col = filas // 2, cols // 2
     jugador = Personaje(0, 0)
     ronda = 1
     mostrando_ronda = False
@@ -344,9 +341,10 @@ while correr:
         mostrando_ronda = True
         tiempo_mensaje_ronda = pygame.time.get_ticks()
 
-        # Cada 5 rondas el jugador recupera 10 de vida 
+        # Cada 5 rondas la vida máxima y actual del jugador suben 10
         if ronda % 5 == 0:
-            jugador.vida = min(jugador.vida + 50, VIDA_MAX_JUGADOR)
+            jugador.VIDA_MAX += 20
+            jugador.vida     += 10
 
     # Mostramos el mensaje de nueva ronda por 2 segundos
     if mostrando_ronda:
