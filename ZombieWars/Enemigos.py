@@ -120,7 +120,7 @@ class Enemigo:
 
     DIST_ATAQUE  = 1.5
     DIST_CORRER  = 8   
-    INTERVALO_RUTA = 800   
+    INTERVALO_RUTA = 1100   
 
     def __init__(self, x, y):
         self.animaciones      = animaciones
