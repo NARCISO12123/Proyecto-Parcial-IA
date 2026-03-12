@@ -148,14 +148,18 @@ def dibujar_entidad(entidad, pantalla):
 
 def spawnar_enemigos():
     nuevos = []
-    cantidad = random.randint(MIN_ENEMIGOS, MAX_ENEMIGOS) + ronda
+    cantidad = min(random.randint(MIN_ENEMIGOS, MAX_ENEMIGOS) + (ronda * ENEMIGOS_POR_RONDA), MAX_ENEMIGOS_TOTAL)
+    
     for _ in range(cantidad):
+    
         for _ in range(1000):
             fila = random.randint(2, filas - 3)
             col  = random.randint(2, cols  - 3)
+    
             if (mapa_grilla[fila][col] == 0 and
                 abs(fila - jugador_fila) >= 5 and
                 abs(col  - jugador_col)  >= 5 and
+    
                 not hay_enemigo(fila, col, nuevos)):
                 nuevos.append({"obj": Enemigo(0, 0), "fila": fila, "col": col})
                 break
@@ -165,14 +169,20 @@ def spawnar_enemigos():
 def reiniciar_partida():
     global jugador_fila, jugador_col, jugador, enemigos, mapa_grilla
     global ronda, mostrando_ronda, tiempo_mensaje_ronda, tiempo_ultimo_danio
+    
     mapa_grilla = construir_grilla_colision(mapa_tmx, filas, cols)
     mapa_grilla[filas // 2][cols // 2] = 0
+    
     jugador_fila, jugador_col = filas // 2, cols // 2
+    
     jugador = Personaje(0, 0)
+    
     ronda = 1
+    
     mostrando_ronda = False
     tiempo_mensaje_ronda = 0
     tiempo_ultimo_danio  = 0
+    
     enemigos = spawnar_enemigos()
 
 
